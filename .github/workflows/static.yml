@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple ETL App</title>
+    <link rel="manifest" href="data:application/json,{%22name%22:%22Simple%20ETL%20App%22,%22short_name%22:%22ETL%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%23000000%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ccircle%20cx='50'%20cy='50'%20r='40'%20fill='%23007acc'/%3E%3Ctext%20x='50'%20y='60'%20text-anchor='middle'%20fill='white'%20font-size='30'%20font-family='Arial'%3EETL%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .trigger-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        
+        .trigger-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 20px 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .trigger-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        
+        .trigger-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid rgba(39, 174, 96, 0.3);
+        }
+        
+        .status.error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+        
+        .status.loading {
+            background: rgba(52, 152, 219, 0.2);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+        
+        .results-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+        }
+        
+        .results-section h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .table-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            color: #333;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 ETL App</h1>
+            <p>Simple data processing pipeline</p>
+        </div>
+        
+        <div class="trigger-section">
+            <h2>Data Collection</h2>
+            <p style="margin-bottom: 20px;">Click to submit "Hello World" with timestamp</p>
+            <button class="trigger-btn" onclick="triggerETL()">
+                🚀 Trigger ETL Process
+            </button>
+            <div id="status" class="status hidden"></div>
+        </div>
+        
+        <div class="results-section">
+            <h2>📈 Results Dashboard</h2>
+            
+            <div class="chart-container">
+                <h3>Words Over Time</h3>
+                <canvas id="timeChart" width="400" height="200"></canvas>
+            </div>
+            
+            <div class="table-container">
+                <h3>Word Frequency</h3>
+                <table id="wordTable">
+                    <thead>
+                        <tr>
+                            <th>Word</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <button onclick="refreshData()" style="width: 100%; padding: 15px; margin-top: 20px; background: rgba(255,255,255,0.2); border: none; border-radius: 10px; color: white; font-size: 1.1em; cursor: pointer;">
+                🔄 Refresh Data
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        // Configuration - Replace with your Databricks details
+        const DATABRICKS_CONFIG = {
+            host: 'your-databricks-host.cloud.databricks.com',
+            token: 'your-databricks-token',
+            clusterId: 'your-cluster-id'
+        };
+
+        // Mock data for demonstration (replace with actual Databricks calls)
+        let mockData = {
+            submissions: [],
+            wordCounts: {}
+        };
+
+        let timeChart = null;
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('timeChart').getContext('2d');
+            timeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Words Submitted',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.classList.remove('hidden');
+        }
+
+        // Hide status message
+        function hideStatus() {
+            const statusEl = document.getElementById('status');
+            statusEl.classList.add('hidden');
+        }
+
+        // Simulate Databricks API call
+        async function callDatabricksAPI(endpoint, data = null) {
+            // In real implementation, this would call Databricks REST API
+            // For demo, we'll simulate the response
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve({ success: true, data: data });
+                }, 1000);
+            });
+        }
+
+        // Trigger ETL process
+        async function triggerETL() {
+            const btn = document.querySelector('.trigger-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Processing...';
+            
+            showStatus('Sending data to Databricks...', 'loading');
+            
+            try {
+                const timestamp = new Date();
+                const text = "Hello World";
+                
+                // Simulate API call to Databricks
+                const response = await callDatabricksAPI('/api/submit-data', {
+                    timestamp: timestamp.toISOString(),
+                    text: text
+                });
+                
+                if (response.success) {
+                    // Update mock data (in real app, this comes from Databricks)
+                    mockData.submissions.push({
+                        timestamp: timestamp,
+                        text: text
+                    });
+                    
+                    // Process words
+                    const words = text.toLowerCase().split(' ');
+                    words.forEach(word => {
+                        mockData.wordCounts[word] = (mockData.wordCounts[word] || 0) + 1;
+                    });
+                    
+                    showStatus('✅ Data processed successfully!', 'success');
+                    await refreshData();
+                    
+                } else {
+                    showStatus('❌ Error processing data', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('❌ Network error occurred', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Trigger ETL Process';
+                setTimeout(hideStatus, 3000);
+            }
+        }
+
+        // Refresh data and update visualizations
+        async function refreshData() {
+            try {
+                // In real implementation, fetch from Databricks
+                await updateChart();
+                updateWordTable();
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+                showStatus('❌ Error refreshing data', 'error');
+            }
+        }
+
+        // Update time series chart
+        async function updateChart() {
+            const timeData = {};
+            
+            // Group submissions by hour
+            mockData.submissions.forEach(submission => {
+                const hour = submission.timestamp.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit'
+                });
+                
+                const wordCount = submission.text.split(' ').length;
+                timeData[hour] = (timeData[hour] || 0) + wordCount;
+            });
+            
+            const labels = Object.keys(timeData);
+            const data = Object.values(timeData);
+            
+            timeChart.data.labels = labels;
+            timeChart.data.datasets[0].data = data;
+            timeChart.update();
+        }
+
+        // Update word frequency table
+        function updateWordTable() {
+            const tbody = document.querySelector('#wordTable tbody');
+            tbody.innerHTML = '';
+            
+            const sortedWords = Object.entries(mockData.wordCounts)
+                .sort((a, b) => b[1] - a[1]);
+            
+            sortedWords.forEach(([word, count]) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td style="font-weight: 500;">${word}</td>
+                    <td><span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.9em;">${count}</span></td>
+                `;
+            });
+            
+            if (sortedWords.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; opacity: 0.6;">No data yet - click the trigger button!</td></tr>';
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            updateWordTable();
+            
+            // Register service worker for PWA functionality
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('data:text/javascript,console.log("SW registered")');
+            }
+        });
+
+        // Real Databricks integration functions (uncomment and modify for production)
+        /*
+        async function submitToDatabricks(timestamp, text) {
+            const response = await fetch(`https://${DATABRICKS_CONFIG.host}/api/2.0/sql/statements`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${DATABRICKS_CONFIG.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    warehouse_id: DATABRICKS_CONFIG.warehouseId,
+                    statement: `INSERT INTO etl_entries (timestamp, text) VALUES ('${timestamp}', '${text}')`
+                })
+            });
+            return await response.json();
+        }
+
+        async function fetchDataFromDatabricks() {
+            const response = await fetch(`https://${DATABRICKS_CONFIG.host}/api/2.0/sql/statements`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${DATABRICKS_CONFIG.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    warehouse_id: DATABRICKS_CONFIG.warehouseId,
+                    statement: 'SELECT * FROM word_counts ORDER BY count DESC'
+                })
+            });
+            return await response.json();
+        }
+        */
+    </script>
+</body>
+</html>
